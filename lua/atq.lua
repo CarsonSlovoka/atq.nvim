@@ -4,6 +4,11 @@ local M = {}
 --- @param msg string
 --- @param opts table
 function M.add(title, msg, opts)
+  if title == "" or msg == "" then
+    vim.notify("缺少title或msg", vim.log.levels.ERROR)
+    return
+  end
+
   opts = opts or {}
   local timeout = opts.timeout or 0
   local at_time = opts.at or "now"
@@ -82,19 +87,30 @@ function M.setup()
       -- print(vim.inspect(args.fargs)) --  { "title", "body", "-a", "01:27", "01/12/2025", "-t", "3000" }
       -- print(vim.inspect(args.args)) -- "title body -a 01:27 01/12/2025 -t 3000"
       if #args.fargs < 2 then
-        vim.notify("參數至少要2個(title, msg)", vim.log.levels.INFO)
+        vim.notify("參數至少要2個(title, msg)", vim.log.levels.ERROR)
       end
       local a = args.fargs -- 它是用空白拆分，這會導致如果title或者body有空白有會不正確
       -- local a = vim.split(args.args, " ") -- args.args是一個字串
       -- local a = vim.split(args.args, "%s+") -- 支持空白分隔符
       local title = a[1]
       local msg = a[2]
+
+      if title:sub(1, 1) == "-" or msg:sub(1, 1) == "-" then
+        vim.notify("❌ title或者msg不能用`-`開頭", vim.log.levels.ERROR)
+        return
+      end
+
       -- 默認不傳值
       local timeout = nil
       local at_time = nil
 
       -- 可選的 timeout 與 at (例如: `-t 3000`, `-a 22:30`, `-a 22:30 01/12/2025`)
+      local begin_opt = false
       for i = 3, #a do
+        if not begin_opt and a[i] == "-a" or a[i] == "-t" then
+          begin_opt = true
+        end
+
         if a[i] == "-t" and tonumber(a[i + 1]) then
           timeout = tonumber(a[i + 1]) -- 設定 timeout 為整數
         elseif a[i] == "-a" and a[i + 1] then
@@ -105,7 +121,9 @@ function M.setup()
             at_time = a[i + 1] .. " " .. a[i + 2]
           end
         else
-          msg = msg .. " " .. a[i] -- 視為msg的沿續
+          if not begin_opt then
+            msg = msg .. " " .. a[i] -- 視為msg的沿續
+          end
         end
       end
 
@@ -122,6 +140,8 @@ function M.setup()
         return { -- 自動完成
           "-a 15:04 01/02/2006",
           "-a 15:04",
+          -- "-a now + 1 hour", -- 目前不支援
+          "-a 08:00 tomorrow",
           "-a 15:04 01/02/2006 -t 6000",
           "-t 8000",
           'title body',
