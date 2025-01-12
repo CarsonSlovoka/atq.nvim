@@ -79,31 +79,49 @@ end
 function M.setup()
   vim.api.nvim_create_user_command("Atq",
     function(args)
-      if #args.args < 2 then
-        vim.notify("參數至少要2個(tilte, msg)", vim.log.levels.INFO)
+      -- vim.split(args, " ")
+      -- vim.split(args, "%s+") -- 支持空白分隔符
+      -- print(vim.inspect(args.fargs)) --  { "title", "body", "-a", "01:27", "01/12/2025", "-t", "3000" }
+      -- print(vim.inspect(args.args)) -- "title body -a 01:27 01/12/2025 -t 3000"
+      if #args.fargs < 2 then
+        vim.notify("參數至少要2個(title, msg)", vim.log.levels.INFO)
       end
-      local params = vim.split(args.args, " ")
-      local title = params[1]
-      local msg = params[2]
+      -- local params = vim.split(args.args, " ") -- args.args是一個字串，可以直接用fargs就不需要再分
+      -- local title = params[1]
+      -- local msg = params[2]
+
+      local a = args.fargs
+      local title = a[1]
+      local msg = a[2]
 
       -- 默認不傳值
       local timeout = nil
       local at_time = nil
 
-      -- 可選的 timeout 與 at (例如: `-t 3000`, `-a "22:30"`)
-      for i = 3, #params do
-        if params[i] == "-t" and tonumber(params[i + 1]) then
-          timeout = tonumber(params[i + 1]) -- 設定 timeout 為整數
-        elseif params[i] == "-a" and params[i + 1] then
-          at_time = params[i + 1]
+      -- 可選的 timeout 與 at (例如: `-t 3000`, `-a 22:30`, `-a 22:30 01/12/2025`)
+      for i = 3, #a do
+        if a[i] == "-t" and tonumber(a[i + 1]) then
+          timeout = tonumber(a[i + 1])                    -- 設定 timeout 為整數
+        elseif a[i] == "-a" and a[i + 1] then
+          if i+2 > #a or
+            (i + 2 <= #a and a[i + 2]:sub(1, 1) == "-") then -- 判別它的下一個參數，如果是-開頭表示為別的可選項
+            at_time = a[i + 1]
+          else -- elseif i + 2 <= #a then
+            at_time = a[i + 1] .. " " .. a[i + 2]
+          end
         end
       end
 
+      vim.notify(
+        string.format("新增提醒: 標題=%s, 訊息=%s, 超時=%d, 時間=%s",
+          title, msg, timeout or 0, at_time or "now")
+      )
       M.add(title, msg, { timeout = timeout, at = at_time })
     end,
     {
       nargs = "*",
       desc = "新增提醒",
+      -- complete = function() return { "-t", "-a" } end, -- 自動完成
     }
   )
 end
