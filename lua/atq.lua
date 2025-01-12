@@ -101,11 +101,11 @@ function M.setup()
           if i + 2 > #a or
               (i + 2 <= #a and a[i + 2]:sub(1, 1) == "-") then -- 判別它的下一個參數，如果是-開頭表示為別的可選項
             at_time = a[i + 1]
-          else                                               -- elseif i + 2 <= #a then
+          else                                                 -- elseif i + 2 <= #a then
             at_time = a[i + 1] .. " " .. a[i + 2]
           end
         else
-          msg = msg .. a[i] -- 視為msg的沿續
+          msg = msg .. " " .. a[i] -- 視為msg的沿續
         end
       end
 
@@ -118,7 +118,18 @@ function M.setup()
     {
       nargs = "*",
       desc = "新增提醒",
-      -- complete = function() return { "-t", "-a" } end, -- 自動完成
+      complete = function()
+        return { -- 自動完成
+          "-a 15:04 01/02/2006",
+          "-a 15:04",
+          "-a 15:04 01/02/2006 -t 6000",
+          "-t 8000",
+          'title body',
+          'title body -a 15:04 01/02/2006 -t 6000',
+          'title line1\\nline 2\\nline 3 -a 15:04',
+          'title line1\\nline 2\\nline 3 -a 15:04 01/02/2006 -t 6000'
+        }
+      end,
     }
   )
 end
